@@ -199,7 +199,7 @@ Date.prototype.format = function (mask, utc) {
                 }
             }
             if(struct[7] > 999)
-            	struct[7] = parseInt(struct[7].toString().substring(0,2))
+            	struct[7] = parseInt(struct[7].toString().substring(0,3))
 
             timestamp = Date.UTC(struct[1], struct[2], struct[3], struct[4], struct[5] + minutesOffset, struct[6], struct[7]);
         }
