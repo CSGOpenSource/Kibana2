@@ -151,7 +151,7 @@ end
 class DateHistogram < Query
   def initialize(question, from, to, interval, field = '@timestamp')
     super(question, from, to)
-    @query['facets'] = {
+    @query['aggs'] = {
       "count" => {
         "date_histogram" => {
           "field" => field,
@@ -182,7 +182,7 @@ class TermsFacet < Query
           script = script + glue + "(doc['"+f+"'].value !=null ? doc['"+f+"'].value : '')"
           glue = "+'||'+"
         end
-        @query['facets'] = {
+        @query['aggs'] = {
           "terms" => {
             "terms" => {
               "script" => script,
@@ -191,10 +191,10 @@ class TermsFacet < Query
         }
       }
     else
-      @query['facets'] = {
+      @query['aggs'] = {
         "terms" => {
           "terms" => {
-            "fields" => field,
+            "field" => field[0],
             "size"  => limit
           }
         }
@@ -216,7 +216,7 @@ end
 class StatsFacet < Query
   def initialize(question, from, to, field)
     super(question, from, to)
-    @query['facets'] = {
+    @query['aggs'] = {
       "stats" => {
         "statistical" => {
           "field" => field,
@@ -239,7 +239,7 @@ end
 class StatsHistogram < Query
   def initialize(question, from, to, field, interval, key_field = '@timestamp')
     super(question, from, to)
-    @query['facets'] = {
+    @query['aggs'] = {
       "mean" => {
         "date_histogram" => {
           "value_field" => field,

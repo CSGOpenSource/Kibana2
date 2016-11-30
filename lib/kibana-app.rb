@@ -78,7 +78,7 @@ class KibanaApp < Sinatra::Base
     case params[:mode]
     when "count"
       query   = DateHistogram.new(
-        req.search,req.from,req.to,params[:interval].to_i)
+        req.search,req.from,req.to,params[:interval])
     when "mean"
       query   = StatsHistogram.new(
         req.search,req.from,req.to,req.analyze,params[:interval].to_i)

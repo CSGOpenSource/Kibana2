@@ -210,7 +210,7 @@ function getGraph(interval) {
   window.segment = typeof window.segment === 'undefined' ? '' : window.segment;
   //Get the data and display it
   window.request = $.ajax({
-    url: "api/graph/"+mode+"/"+interval+"/"+sendhash+"/"+window.segment,
+    url: "api/graph/"+mode+"/"+interval+"ms/"+sendhash+"/"+window.segment,
     type: "GET",
     cache: false,
     success: function (json) {
@@ -221,18 +221,18 @@ function getGraph(interval) {
         var graphjson = JSON.parse(json);
 
         if ($(".legend").length > 0) {
-          window.graphdata = graphjson.facets[mode].entries.concat(
+          window.graphdata = graphjson.aggregations[mode].buckets.concat(
             window.graphdata);
           window.graphhits = graphjson.hits.total + window.graphhits;
         } else {
-          window.graphdata = graphjson.facets[mode].entries;
+          window.graphdata = graphjson.aggregations[mode].buckets;
           window.graphhits = graphjson.hits.total;
         }
 
         setMeta(window.graphhits);
 
         // Display graph data
-        logGraph(window.graphdata, interval, mode);
+        logGraph(window.graphdata, interval, mode === 'count' ? 'doc_count' : mode);
 
         if (typeof graphjson.kibana.next !== 'undefined') {
           window.segment = graphjson.kibana.next;
@@ -392,9 +392,9 @@ function getAnalysis() {
 
           // add the missing count for the terms table and pie chart
           // This should really insert at the right point.
-          resultjson.facets.terms.terms.push({
-            term: '',
-            count: resultjson.facets.terms.missing
+          resultjson.aggregations.terms.buckets.push({
+            key: '',
+            doc_count: resultjson.aggregations.terms.sum_other_doc_count
           });
 
           var title = ''+
@@ -419,8 +419,8 @@ function getAnalysis() {
 
           // Calculate data for pie chart
           var data = [];
-          $.each(resultjson.facets.terms.terms,function(i,term) {
-            data[i] = { label: term['term'], data: term['count'], color: window.graph_colors[i] };
+          $.each(resultjson.aggregations.terms.buckets,function(i,term) {
+            data[i] = { label: term['key'], data: term['doc_count'], color: window.graph_colors[i] };
           });
           var remain = data.slice(window.graph_colors.length,data.length)
           var r = 0
@@ -556,14 +556,14 @@ function analysisTable(resultjson) {
 function termsTable(resultjson) {
   var i = 0;
   var tblArray = new Array();
-  for (var obj in resultjson.facets.terms.terms) {
-    var object = resultjson.facets.terms.terms[obj];
+  for (var obj in resultjson.aggregations.terms.buckets) {
+    var object = resultjson.aggregations.terms.buckets[obj];
     var metric = {};
     var color = i < window.graph_colors.length ?
       " <i class=icon-sign-blank style='color:"+window.graph_colors[i]+"'><i>" : '';
 
     metric['Rank'] = (i + 1) + color;
-    var termv = object.term.split('||');
+    var termv = object.key.split('||');
     var fields = window.hashjson.analyze_field.split(',,');
     for (var count = 0; count < fields.length; count++) {
       // TODO: This is so wrong, really shouldn't be matching a string here
@@ -575,9 +575,9 @@ function termsTable(resultjson) {
       metric[fields[count]] = value;
     }
     var analyze_field = fields.join(' ')
-    metric['Count'] = addCommas(object.count);
+    metric['Count'] = addCommas(object.doc_count);
     metric['Percent'] =  Math.round(
-      object.count / resultjson.hits.total * 10000
+      object.doc_count / resultjson.hits.total * 10000
       ) / 100 + '%';
     metric['Action'] =  "<span class='raw'>" + xmlEnt(object.term) + "</span>"+
       "<i data-mode='' data-field='" + analyze_field + "' "+
@@ -1297,13 +1297,14 @@ function logGraph(data, interval, metric) {
   // If mode is graph, graph count, otherwise remove word 'graph' and chart
   // whatever is left. ie meangraph -> mean
   if (typeof metric === 'undefined')
-    metric = 'count';
+    metric = 'doc_count';
 
   metric = metric.replace('graph','');
 
   if (metric === '')
-    metric = 'count';
-
+    metric = 'doc_count';
+    
+  var timeField = metric == 'doc_count' ? 'key' : 'time';
   var array = new Array();
   var from, to;
   if(typeof window.resultjson.kibana.time !== 'undefined') {
@@ -1317,7 +1318,7 @@ function logGraph(data, interval, metric) {
 
   for (var index in data) {
     var value = data[index][metric];
-    array.push(Array(data[index].time + tOffset, value));
+    array.push(Array(data[index][timeField] + tOffset, value));
   }
 
   if(typeof window.resultjson.kibana.time !== 'undefined') {
