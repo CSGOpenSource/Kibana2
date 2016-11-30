@@ -30,7 +30,8 @@ __Install__
 1. git clone --branch=kibana-ruby https://github.com/rashidkpc/Kibana.git	
 2. cd Kibana  
 3. gem install bundler  
-4. bundle install  
+4. bundle install 
+5. set Timezone in KibanaConfig.rb to 'America/Denver' 
 
 __Configure__  
 Set your elasticsearch server in KibanaConfig.rb:  
